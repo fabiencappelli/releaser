@@ -205,3 +205,21 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# confidential inputs
+data/*
+jira/*
+assets/*
+
+# generated files
+audio/*
+build/*
+output/*
+
+# keep folder structure
+!audio/.gitkeep
+!build/.gitkeep
+!output/.gitkeep
+!data/.gitkeep
+!jira/.gitkeep
+!assets/.gitkeep
