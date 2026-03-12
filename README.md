@@ -14,13 +14,14 @@ The goal is to quickly transform technical release information into a **short, e
 
 # Overview
 
-The pipeline performs three main steps:
+The pipeline performs four main steps:
 
 1. **Parse release notes**
 2. **Generate a video script**
-3. **Produce audio and render slides**
+3. **Generate narration audio**
+4. **Render slides and assemble the final video**
 
-The result is a short video presenting the key changes in a release.
+The result is a short narrated video presenting the key changes in a release.
 
 ```
 Jira Export (HTML)
@@ -32,11 +33,16 @@ Jira Export (HTML)
  Voice Narration
         │
         ▼
+ Audio Normalization
+        │
+        ▼
  Slide Rendering
         │
         ▼
    Final Video
 ```
+
+In version 2, the audio pipeline was redesigned to improve **synchronization reliability** between narration and slides.
 
 ---
 
@@ -97,6 +103,8 @@ Each slide:
 - displays 2–4 bullet points
 - plays a narration explaining the change
 
+Short pauses between slides improve readability.
+
 ---
 
 # Project Structure
@@ -107,10 +115,11 @@ project/
 ├─ assets/                # visual assets (background image)
 │   └─ background.png
 │
-├─ audio/                 # generated narration audio
+├─ audio/                 # generated narration audio (mp3)
 │   └─ .gitkeep
 │
 ├─ build/                 # intermediate artifacts
+│   ├─ normalized_audio/  # normalized WAV narration
 │   └─ .gitkeep
 │
 ├─ output/                # final video
@@ -122,7 +131,9 @@ project/
 ├─ src/
 │   ├─ generate_script.py
 │   ├─ generate_audio.py
-│   └─ render_video.py
+│   ├─ build_audio_track.py
+│   ├─ render_video.py
+│   └─ run_all.py
 │
 ├─ .gitignore
 └─ README.md
@@ -175,9 +186,26 @@ export OPENAI_API_KEY=your_key_here
 
 # Running the Pipeline
 
-The pipeline runs in three steps.
+You can run the pipeline **step-by-step** or use the **automatic runner**.
 
 ---
+
+# Quick Run (recommended)
+
+```
+python src/run_all.py
+```
+
+This executes the full pipeline:
+
+1. Generate script
+2. Generate narration audio
+3. Build the final audio track (with pauses)
+4. Render the final video
+
+---
+
+# Manual Execution
 
 ## 1 Generate the script
 
@@ -232,7 +260,29 @@ audio/02_update.mp3
 
 ---
 
-## 3 Render the video
+## 3 Build the final audio track
+
+```
+python src/build_audio_track.py
+```
+
+This step:
+
+- converts MP3 narration to **normalized WAV audio**
+- inserts **silent pauses between slides**
+- concatenates all audio segments
+
+Final output:
+
+```
+build/final_audio.wav
+```
+
+The normalization step improves synchronization between slides and narration.
+
+---
+
+## 4 Render the video
 
 ```
 python src/render_video.py
@@ -242,7 +292,7 @@ This step:
 
 - renders slide visuals
 - overlays text onto a background image
-- synchronizes with narration
+- synchronizes slides with narration
 - concatenates all segments
 
 Final output:
@@ -281,6 +331,7 @@ For example:
 - slide margins
 - panel opacity
 - video resolution
+- pause duration between slides
 
 ---
 
@@ -310,7 +361,7 @@ Short narrated videos can help communicate updates to:
 - internal stakeholders
 - users
 
-This project automates the transformation from **release notes to video presentation**.
+This project automates the transformation from **release notes to a narrated video presentation**.
 
 ---
 
@@ -321,14 +372,15 @@ Current version:
 - static background image
 - simple slide layout
 - no animations
+- limited slide templates
 
 Possible future improvements:
 
 - slide transitions
-- progress bar
 - subtitles
 - background music
 - dynamic layouts
+- multiple visual themes
 
 ---
 

@@ -1,25 +1,46 @@
+import json
+from pathlib import Path
 from dotenv import load_dotenv
+from openai import OpenAI
 
 load_dotenv()
-from openai import OpenAI
-import json
-import os
 
 client = OpenAI()
 
-script = json.load(open("build/script.json"))
+SCRIPT_PATH = Path("build/script.json")
+AUDIO_DIR = Path("audio")
 
-os.makedirs("audio", exist_ok=True)
 
-for i, seg in enumerate(script):
+def clean_audio_outputs() -> None:
+    AUDIO_DIR.mkdir(parents=True, exist_ok=True)
 
-    audio = client.audio.speech.create(
-        model="gpt-4o-mini-tts", voice="alloy", input=seg["voiceover"]
-    )
+    for mp3_file in AUDIO_DIR.glob("*.mp3"):
+        mp3_file.unlink()
 
-    path = f"audio/{i:02d}_{seg['id']}.mp3"
 
-    with open(path, "wb") as f:
-        f.write(audio.read())
+def main() -> None:
+    script = json.loads(SCRIPT_PATH.read_text(encoding="utf-8"))
 
-    print("generated", path)
+    clean_audio_outputs()
+
+    for i, seg in enumerate(script):
+        voiceover = seg.get("voiceover", "").strip()
+        if not voiceover:
+            raise ValueError(f"Missing voiceover in segment {i}: {seg.get('id')}")
+
+        audio = client.audio.speech.create(
+            model="gpt-4o-mini-tts",
+            voice="alloy",
+            input=voiceover,
+        )
+
+        path = AUDIO_DIR / f"{i:02d}_{seg['id']}.mp3"
+
+        with path.open("wb") as f:
+            f.write(audio.read())
+
+        print("generated", path)
+
+
+if __name__ == "__main__":
+    main()
