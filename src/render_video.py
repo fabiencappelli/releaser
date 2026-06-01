@@ -23,6 +23,10 @@ FONT_FILE = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
 FONT_FILE_REGULAR = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
 
 TITLE_SIZE = 56
+TITLE_SIZE_COMPACT = 42
+TITLE_SIZE_SMALL = 38
+TITLE_WRAP = 34
+TITLE_MAX_LINES = 2
 BULLET_SIZE = 34
 FOOTER_SIZE = 24
 
@@ -77,6 +81,26 @@ def wrap_bullet_lines(text: str, width: int = BULLET_WRAP) -> list[str]:
     return wrap(text, width=width) or [text]
 
 
+def fit_title(title: str) -> tuple[list[str], int, int]:
+    title = " ".join(title.split())
+    if len(title) <= TITLE_WRAP:
+        return [title], TITLE_SIZE, TITLE_Y
+
+    lines = wrap(
+        title,
+        width=TITLE_WRAP,
+        max_lines=TITLE_MAX_LINES,
+        placeholder="...",
+        break_long_words=True,
+        break_on_hyphens=False,
+    ) or [title]
+
+    if len(title) <= TITLE_WRAP * TITLE_MAX_LINES:
+        return lines, TITLE_SIZE_COMPACT, TITLE_Y - 12
+
+    return lines, TITLE_SIZE_SMALL, TITLE_Y - 10
+
+
 def probe_audio_duration(audio_file: Path) -> float:
     result = subprocess.run(
         [
@@ -114,8 +138,11 @@ def add_drawtext_file(
     shadowcolor: str = "black@0.9",
     shadowx: int = 2,
     shadowy: int = 2,
+    line_spacing: int | None = None,
 ) -> None:
     safe_path = ffmpeg_escape_path(text_file)
+
+    line_spacing_filter = f":line_spacing={line_spacing}" if line_spacing is not None else ""
 
     filters.append(
         "drawtext="
@@ -128,6 +155,7 @@ def add_drawtext_file(
         f"shadowcolor={shadowcolor}:"
         f"shadowx={shadowx}:"
         f"shadowy={shadowy}"
+        f"{line_spacing_filter}"
     )
 
 
@@ -153,14 +181,18 @@ def build_drawtext_filters(
         f"drawbox=x={panel_x}:y={panel_y}:w={panel_w}:h=110:color=black@0.58:t=fill"
     )
 
-    title_file = write_text_asset(f"seg_{segment_idx:03d}_title.txt", title)
+    title_lines, title_size, title_y = fit_title(title)
+    title_file = write_text_asset(
+        f"seg_{segment_idx:03d}_title.txt", "\n".join(title_lines)
+    )
     add_drawtext_file(
         filters,
         text_file=title_file,
         fontfile=FONT_FILE,
         x=str(TITLE_X),
-        y=str(TITLE_Y),
-        fontsize=TITLE_SIZE,
+        y=str(title_y),
+        fontsize=title_size,
+        line_spacing=8,
     )
 
     for bullet_idx, bullet in enumerate(bullets[:MAX_BULLETS]):

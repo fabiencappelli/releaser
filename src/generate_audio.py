@@ -30,7 +30,7 @@ def main() -> None:
 
         audio = client.audio.speech.create(
             model="gpt-4o-mini-tts",
-            voice="alloy",
+            voice="marin",
             input=voiceover,
         )
 
